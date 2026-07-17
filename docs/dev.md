@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Developer Guide
+permalink: /dev/
 ---
 
 # Developer & Maintainer Guide
