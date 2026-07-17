@@ -7,33 +7,28 @@
 ```mermaid
 graph TD
     subgraph Input
-        A1[USB Barcode Scanner<br/>keyboard emulation]
+        A1[USB Barcode Scanner]
         A2[Manual keyboard entry]
     end
 
-    subgraph Server ["FastAPI Server (app.py)"]
-        B[GET /\nScanner page]
-        C[POST /scan\nReceive barcode]
-        D[GET /item/:barcode\nLookup + display]
-        E[GET /admin\nList + search]
-        F[POST /admin/add\nCreate item]
-        G[GET /admin/edit/:id\nEdit form]
-        H[POST /admin/edit/:id\nUpdate item]
-        I[POST /admin/delete/:id\nDelete item]
+    subgraph Pi ["Raspberry Pi (self-hosted)"]
+        B[FastAPI app\nuvicorn on port 8080]
+        C[PostgreSQL\ninventory DB]
+        D[cloudflared\nCloudflare Tunnel daemon]
     end
 
-    subgraph Storage ["SQLite (inventory.db)"]
-        J[(items table)]
+    subgraph Cloud
+        E[Cloudflare Edge]
+        F[inventory.yourdomain.com]
     end
 
-    A1 & A2 -->|barcode string + Enter| B
-    B -->|form submit| C
-    C -->|302 redirect| D
-    D <-->|SELECT| J
-    E <-->|SELECT| J
-    F -->|INSERT| J
-    H -->|UPDATE| J
-    I -->|DELETE| J
+    G[(Neon\nweekly backup)]
+
+    A1 & A2 -->|barcode + Enter| B
+    B <-->|SQL queries| C
+    B --> D
+    D --> E --> F
+    C -->|pg_dump every Sunday 2am| G
 ```
 
 ---
@@ -43,14 +38,16 @@ graph TD
 ```
 inventory-tracker/
 ├── app.py              # All route logic
-├── database.py         # SQLite connection + schema init
+├── database.py         # PostgreSQL connection + schema init
 ├── seed.py             # Populate sample data (run once)
-├── inventory.db        # SQLite database (auto-created)
 ├── requirements.txt
+├── .env                # DATABASE_URL (not committed)
+├── .env.example        # Template for .env
+├── .gitignore
 ├── docs/
-│   ├── user.md         # User guide (served at /docs/user)
-│   ├── dev.md          # This file (served at /docs/dev)
-│   └── data.md         # Data reference (served at /docs/data)
+│   ├── user.md         # User guide  → /docs/user
+│   ├── dev.md          # This file   → /docs/dev
+│   └── data.md         # Data ref    → /docs/data
 └── templates/
     ├── index.html      # Scanner input page
     ├── item.html       # Item display / not-found
@@ -79,47 +76,147 @@ inventory-tracker/
 
 ---
 
-## Setup
+## Dependencies
+
+| Package          | Purpose                          |
+|------------------|----------------------------------|
+| fastapi          | Web framework + routing          |
+| uvicorn          | ASGI server                      |
+| jinja2           | HTML templating                  |
+| python-multipart | Parsing HTML form POST bodies    |
+| markdown         | Rendering `.md` files to HTML    |
+| psycopg2-binary  | PostgreSQL driver                |
+| python-dotenv    | Load `.env` for local dev        |
+
+---
+
+## Raspberry Pi Setup
+
+### 1. Flash the OS
+
+Use Raspberry Pi Imager on your Mac. Flash **Raspberry Pi OS Lite (64-bit)**. In settings before writing:
+- Hostname: `inventory`
+- Enable SSH
+- Set username/password
+- Configure WiFi
+
+Insert SD card into Pi and power on. SSH in from your Mac:
 
 ```bash
-git clone <repo>
+ssh pi@inventory.local
+```
+
+### 2. Install PostgreSQL
+
+```bash
+sudo apt update && sudo apt install -y postgresql postgresql-contrib
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+```
+
+Create the DB and user:
+
+```bash
+sudo -u postgres psql <<EOF
+CREATE USER inventory WITH PASSWORD 'yourpassword';
+CREATE DATABASE inventory OWNER inventory;
+EOF
+```
+
+### 3. Clone and run the app
+
+```bash
+sudo apt install -y python3-pip python3-venv git
+git clone https://<PAT>@github.com/maniacurgency42/inventory-tracker.git
 cd inventory-tracker
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python seed.py        # creates inventory.db with sample data
-uvicorn app:app --host "::" --port 8080
+echo "DATABASE_URL=postgresql://inventory:yourpassword@localhost:5432/inventory" > .env
+python seed.py
 ```
 
----
-
-## Dependencies
-
-| Package          | Purpose                              |
-|------------------|--------------------------------------|
-| fastapi          | Web framework + routing              |
-| uvicorn          | ASGI server                          |
-| jinja2           | HTML templating                      |
-| python-multipart | Parsing HTML form POST bodies        |
-| markdown         | Rendering `.md` files to HTML        |
-
-All data is stored in a single SQLite file (`inventory.db`) — no database server required.
-
----
-
-## Raspberry Pi Deployment
-
-Same setup as above. To make it accessible on the local network:
+### 4. Run as a systemd service (always on)
 
 ```bash
-uvicorn app:app --host "::" --port 8080
+sudo nano /etc/systemd/system/inventory.service
 ```
 
-Access from any device on the same network at `http://<pi-ip>:8080`.
+```ini
+[Unit]
+Description=Inventory Tracker
+After=network.target postgresql.service
 
-**Scanner placement:** USB scanners emulate a keyboard and must be connected to whichever machine has the browser open — either the Pi directly, or a laptop pointed at the Pi's IP.
+[Service]
+User=pi
+WorkingDirectory=/home/pi/inventory-tracker
+EnvironmentFile=/home/pi/inventory-tracker/.env
+ExecStart=/home/pi/inventory-tracker/.venv/bin/uvicorn app:app --host "::" --port 8080
+Restart=always
 
-**Storage:** Prefer a USB SSD over a microSD card to avoid corruption. Back up `inventory.db` regularly.
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable inventory
+sudo systemctl start inventory
+```
+
+### 5. Cloudflare Tunnel (global access)
+
+```bash
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb -o cloudflared.deb
+sudo dpkg -i cloudflared.deb
+
+cloudflared tunnel login        # opens a browser link — authenticate on your Mac
+cloudflared tunnel create inventory
+cloudflared tunnel route dns inventory inventory.yourdomain.com
+sudo cloudflared service install
+```
+
+App is now live at `https://inventory.yourdomain.com`.
+
+### 6. Weekly backup cron
+
+```bash
+mkdir -p /home/pi/backups
+crontab -e
+```
+
+Add:
+
+```
+0 2 * * 0  pg_dump postgresql://inventory:yourpassword@localhost:5432/inventory > /home/pi/backups/inventory-$(date +\%Y\%m\%d).sql
+```
+
+Runs every Sunday at 2am. Copy dumps to Neon or cloud storage for off-Pi backup.
+
+---
+
+## Deploying Updates
+
+When you push changes to GitHub, pull them on the Pi and restart:
+
+```bash
+ssh pi@inventory.local
+cd inventory-tracker
+git pull
+sudo systemctl restart inventory
+```
+
+---
+
+## Local Development (Mac)
+
+For dev on your Mac, point `DATABASE_URL` at a local Postgres instance or a Neon dev branch:
+
+```bash
+cp .env.example .env
+# edit .env with your local DB URL
+source .venv/bin/activate
+uvicorn app:app --host "::" --port 8080 --reload
+```
 
 ---
 
@@ -130,8 +227,8 @@ Access from any device on the same network at `http://<pi-ip>:8080`.
 3. Add the input to `templates/admin.html` and `templates/admin_edit.html`
 4. Add the field to `templates/item.html` for display
 
-For existing databases, run the migration manually:
+For the existing Pi database, run the migration over SSH:
 
 ```bash
-sqlite3 inventory.db "ALTER TABLE items ADD COLUMN new_field TEXT;"
+sudo -u postgres psql inventory -c "ALTER TABLE items ADD COLUMN new_field TEXT;"
 ```
