@@ -2,8 +2,8 @@
 
 Barcode scan → lookup → display. Self-hosted on Raspberry Pi with PostgreSQL.
 
-**Docs:** https://inventory.yourdomain.com/docs
+**Docs:** https://maniacurgency42.github.io/inventory-tracker/docs/
 
-- [User Guide](https://inventory.yourdomain.com/docs/user)
-- [Developer Guide](https://inventory.yourdomain.com/docs/dev)
-- [Data Reference](https://inventory.yourdomain.com/docs/data)
+- [User Guide](https://maniacurgency42.github.io/inventory-tracker/docs/user)
+- [Developer Guide](https://maniacurgency42.github.io/inventory-tracker/docs/dev)
+- [Data Reference](https://maniacurgency42.github.io/inventory-tracker/docs/data)

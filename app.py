@@ -1,8 +1,12 @@
+import re
 from pathlib import Path
 
 import markdown
 from dotenv import load_dotenv
 load_dotenv()
+
+def _strip_front_matter(text):
+    return re.sub(r"^---.*?---\s*", "", text, flags=re.DOTALL)
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -142,7 +146,7 @@ _DOC_TITLES = {"user": "User Guide", "dev": "Developer Guide", "data": "Data Ref
 def docs_section(request: Request, section: str):
     if section not in _DOC_TITLES:
         return HTMLResponse("Not found", status_code=404)
-    content = Path(f"docs/{section}.md").read_text()
+    content = _strip_front_matter(Path(f"docs/{section}.md").read_text())
     body = markdown.markdown(content, extensions=["tables", "fenced_code"])
     return templates.TemplateResponse(
         request=request, name="docs_page.html",
