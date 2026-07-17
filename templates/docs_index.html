@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Docs — inventory-tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f9f9f9; color: #222; }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 0 32px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .title { font-weight: 600; font-size: 0.95rem; }
+    header nav a { font-size: 0.85rem; color: #555; text-decoration: none; margin-left: 20px; }
+    header nav a:hover { color: #000; }
+
+    main { max-width: 680px; margin: 80px auto; padding: 0 24px; }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 48px; }
+
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 24px;
+      text-decoration: none;
+      color: #222;
+      transition: border-color .15s, box-shadow .15s;
+      display: block;
+    }
+    .card:hover { border-color: #aaa; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+    .card-icon { font-size: 1.4rem; margin-bottom: 14px; }
+    .card h2 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .card p { font-size: 0.8rem; color: #666; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="title">inventory-tracker / docs</span>
+  <nav>
+    <a href="/">Scanner</a>
+    <a href="/admin">Admin</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Documentation</h1>
+  <p class="subtitle">Choose a section below.</p>
+
+  <div class="cards">
+    <a class="card" href="/docs/user">
+      <div class="card-icon">👤</div>
+      <h2>User Guide</h2>
+      <p>How to scan items and use the admin panel.</p>
+    </a>
+    <a class="card" href="/docs/dev">
+      <div class="card-icon">⚙️</div>
+      <h2>Developer Guide</h2>
+      <p>Architecture, routes, setup, and deployment.</p>
+    </a>
+    <a class="card" href="/docs/data">
+      <div class="card-icon">🗄️</div>
+      <h2>Data Reference</h2>
+      <p>Schema, field types, constraints, and barcode formats.</p>
+    </a>
+  </div>
+</main>
+
+</body>
+</html>

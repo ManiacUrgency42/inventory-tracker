@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin — inventory-tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f9f9f9; color: #222; }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 0 32px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .title { font-weight: 600; font-size: 0.95rem; }
+    header nav a { font-size: 0.85rem; color: #555; text-decoration: none; margin-left: 20px; }
+    header nav a:hover { color: #000; }
+
+    main { max-width: 960px; margin: 40px auto; padding: 0 24px; }
+
+    /* Search + Add row */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .toolbar input[type="text"] {
+      flex: 1;
+      padding: 9px 14px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+    .toolbar input[type="text"]:focus { outline: none; border-color: #888; }
+    .btn { padding: 9px 18px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; border: none; }
+    .btn-primary { background: #222; color: #fff; }
+    .btn-primary:hover { background: #444; }
+    .btn-ghost { background: transparent; color: #555; border: 1px solid #ddd; }
+    .btn-ghost:hover { background: #f0f0f0; }
+
+    /* Table */
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th {
+      text-align: left;
+      padding: 11px 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: #fafafa;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    tbody tr { border-bottom: 1px solid #f0f0f0; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+    td { padding: 12px 16px; vertical-align: middle; }
+    td.mono { font-family: "Menlo", "Consolas", monospace; font-size: 0.8rem; color: #555; }
+    .qty { font-weight: 600; }
+    .actions { display: flex; gap: 8px; }
+    .btn-edit { font-size: 0.8rem; padding: 5px 12px; }
+    .btn-delete {
+      font-size: 0.8rem; padding: 5px 12px;
+      background: transparent; color: #cc2222;
+      border: 1px solid #e5b5b5; border-radius: 6px; cursor: pointer;
+    }
+    .btn-delete:hover { background: #fff0f0; }
+    .empty { text-align: center; padding: 48px 0; color: #999; font-size: 0.9rem; }
+
+    /* Add form */
+    .add-section { margin-top: 32px; }
+    .add-section h2 { font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 2fr 80px 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 0.75rem; color: #666; font-weight: 500; }
+    .form-grid input {
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: #fff;
+    }
+    .form-grid input:focus { outline: none; border-color: #888; }
+
+    /* Delete modal */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      padding: 28px 28px 22px;
+      width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      animation: pop .15s ease;
+    }
+    @keyframes pop {
+      from { transform: scale(.95); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .modal h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .modal p  { font-size: 0.85rem; color: #666; margin-bottom: 22px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel { background: transparent; color: #555; border: 1px solid #ddd; }
+    .btn-cancel:hover { background: #f0f0f0; }
+    .btn-confirm-delete { background: #cc2222; color: #fff; border: none; }
+    .btn-confirm-delete:hover { background: #aa1a1a; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="title">inventory-tracker / admin</span>
+  <nav>
+    <a href="/">Scanner</a>
+    <a href="/docs">Docs</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- Search -->
+  <form method="get" action="/admin">
+    <div class="toolbar">
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        placeholder="Search by name, barcode, description, location…"
+        autofocus
+      />
+      <button class="btn btn-primary" type="submit">Search</button>
+      {% if q %}<a href="/admin" class="btn btn-ghost">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  <!-- Items table -->
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Barcode</th>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Location</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for item in items %}
+          <tr>
+            <td class="mono">{{ item['barcode'] }}</td>
+            <td>{{ item['name'] }}</td>
+            <td style="color:#666">{{ item['description'] or '—' }}</td>
+            <td class="qty">{{ item['quantity'] }}</td>
+            <td>{{ item['location'] or '—' }}</td>
+            <td>
+              <div class="actions">
+                <a href="/admin/edit/{{ item['id'] }}" class="btn btn-ghost btn-edit">Edit</a>
+                <button class="btn-delete" onclick="openDelete('{{ item['id'] }}', '{{ item['name'] | replace("'", "\\'") }}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="6" class="empty">No items found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add item -->
+  <div class="add-section">
+    <h2>Add item</h2>
+    <form method="post" action="/admin/add">
+      <div class="form-grid">
+        <label>Barcode <input type="text" name="barcode" required /></label>
+        <label>Name <input type="text" name="name" required /></label>
+        <label>Description <input type="text" name="description" /></label>
+        <label>Qty <input type="number" name="quantity" value="0" min="0" /></label>
+        <label>Location <input type="text" name="location" /></label>
+        <button class="btn btn-primary" type="submit" style="margin-bottom:1px">Add</button>
+      </div>
+    </form>
+  </div>
+
+</main>
+
+<!-- Delete modal -->
+<div class="overlay" id="overlay" onclick="closeDelete(event)">
+  <div class="modal">
+    <h3>Delete item?</h3>
+    <p id="modal-item-name"></p>
+    <form method="post" id="delete-form">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" onclick="closeDelete()">Cancel</button>
+        <button type="submit" class="btn btn-confirm-delete">Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openDelete(id, name) {
+    document.getElementById('modal-item-name').textContent = 'This will permanently remove "' + name + '" from the database.';
+    document.getElementById('delete-form').action = '/admin/delete/' + id;
+    document.getElementById('overlay').classList.add('active');
+  }
+  function closeDelete(e) {
+    if (e && e.target !== document.getElementById('overlay')) return;
+    document.getElementById('overlay').classList.remove('active');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('overlay').classList.remove('active');
+  });
+</script>
+</body>
+</html>

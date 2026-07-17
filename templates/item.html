@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if item %}{{ item['name'] }}{% else %}Not Found{% endif %}</title>
+  <style>
+    body  { font-family: sans-serif; max-width: 480px; margin: 80px auto; padding: 0 16px; }
+    a     { color: #333; text-decoration: none; font-size: 0.9rem; }
+    a:hover { text-decoration: underline; }
+    h1    { margin: 16px 0 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    td    { padding: 10px 0; border-bottom: 1px solid #eee; vertical-align: top; }
+    td:first-child { font-weight: bold; width: 120px; color: #555; }
+    .not-found { color: #888; }
+    code  { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+    .scan-again { display: inline-block; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <a href="/">← Back</a>
+
+  {% if item %}
+  <h1>{{ item['name'] }}</h1>
+  <table>
+    <tr><td>Barcode</td>    <td><code>{{ item['barcode'] }}</code></td></tr>
+    <tr><td>Description</td><td>{{ item['description'] or '—' }}</td></tr>
+    <tr><td>Quantity</td>   <td>{{ item['quantity'] }}</td></tr>
+    <tr><td>Location</td>   <td>{{ item['location'] or '—' }}</td></tr>
+  </table>
+  {% else %}
+  <h1>Not found</h1>
+  <p class="not-found">No item with barcode <code>{{ barcode }}</code></p>
+  {% endif %}
+
+  <a class="scan-again" href="/">Scan another →</a>
+</body>
+</html>
