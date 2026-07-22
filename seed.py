@@ -3,6 +3,9 @@ Run once to populate the database with sample items.
 Usage: python seed.py
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import database
 
 database.init_db()
