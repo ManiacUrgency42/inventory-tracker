@@ -109,7 +109,7 @@ Use Raspberry Pi Imager on your Mac. Flash **Raspberry Pi OS Lite (64-bit)**. In
 Insert SD card into Pi and power on. SSH in from your Mac:
 
 ```bash
-ssh pi@inventory.local
+ssh posm@inventory.local
 ```
 
 ### 2. Install PostgreSQL
@@ -133,7 +133,7 @@ EOF
 
 ```bash
 sudo apt install -y python3-pip python3-venv git
-git clone https://<PAT>@github.com/maniacurgency42/inventory-tracker.git
+git clone https://<PAT>@github.com/ManiacUrgency42/inventory-tracker.git
 cd inventory-tracker
 python3 -m venv .venv
 source .venv/bin/activate
@@ -154,10 +154,10 @@ Description=Inventory Tracker
 After=network.target postgresql.service
 
 [Service]
-User=pi
-WorkingDirectory=/home/pi/inventory-tracker
-EnvironmentFile=/home/pi/inventory-tracker/.env
-ExecStart=/home/pi/inventory-tracker/.venv/bin/uvicorn app:app --host "::" --port 8080
+User=posm
+WorkingDirectory=/home/posm/inventory-tracker
+EnvironmentFile=/home/posm/inventory-tracker/.env
+ExecStart=/home/posm/inventory-tracker/.venv/bin/uvicorn app:app --host "::" --port 8080
 Restart=always
 
 [Install]
@@ -186,14 +186,14 @@ App is now live at `https://inventory.yourdomain.com`.
 ### 6. Weekly backup cron
 
 ```bash
-mkdir -p /home/pi/backups
+mkdir -p /home/posm/backups
 crontab -e
 ```
 
 Add:
 
 ```
-0 2 * * 0  pg_dump postgresql://inventory:yourpassword@localhost:5432/inventory > /home/pi/backups/inventory-$(date +\%Y\%m\%d).sql
+0 2 * * 0  pg_dump postgresql://inventory:yourpassword@localhost:5432/inventory > /home/posm/backups/inventory-$(date +\%Y\%m\%d).sql
 ```
 
 Runs every Sunday at 2am. Copy dumps to Neon or cloud storage for off-Pi backup.
@@ -205,7 +205,7 @@ Runs every Sunday at 2am. Copy dumps to Neon or cloud storage for off-Pi backup.
 When you push changes to GitHub, pull them on the Pi and restart:
 
 ```bash
-ssh pi@inventory.local
+ssh posm@inventory.local
 cd inventory-tracker
 git pull
 sudo systemctl restart inventory
