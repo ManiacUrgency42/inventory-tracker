@@ -213,6 +213,24 @@ sudo systemctl restart inventory
 
 ---
 
+## Health Check
+
+Run this after every reboot to confirm all three components are up:
+
+```bash
+sudo systemctl status postgresql inventory cloudflared
+```
+
+Each service should show `active (running)`. You can also verify the app is responding locally:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8080
+```
+
+Should return `200`.
+
+---
+
 ## Local Development (Mac)
 
 For dev on your Mac, point `DATABASE_URL` at a local Postgres instance or a Neon dev branch:
