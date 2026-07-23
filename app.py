@@ -29,6 +29,26 @@ def scan(barcode: str = Form(...)):
     return RedirectResponse(f"/item/{barcode.strip()}", status_code=302)
 
 
+@app.post("/add")
+def add_item(
+    barcode: str = Form(...),
+    name: str = Form(...),
+    description: str = Form(""),
+    quantity: int = Form(0),
+    location: str = Form(""),
+):
+    conn = database.get_connection()
+    cur = database.get_cursor(conn)
+    cur.execute(
+        "INSERT INTO items (barcode, name, description, quantity, location) VALUES (%s, %s, %s, %s, %s)",
+        (barcode.strip(), name.strip(), description.strip(), quantity, location.strip()),
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return RedirectResponse(f"/item/{barcode.strip()}", status_code=302)
+
+
 @app.get("/item/{barcode}", response_class=HTMLResponse)
 def get_item(request: Request, barcode: str):
     conn = database.get_connection()

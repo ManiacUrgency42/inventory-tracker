@@ -28,8 +28,34 @@
     <tr><td>Location</td>   <td>{{ item['location'] or '—' }}</td></tr>
   </table>
   {% else %}
-  <h1>Not found</h1>
-  <p class="not-found">No item with barcode <code>{{ barcode }}</code></p>
+  <h1>Not in inventory</h1>
+  <p class="not-found">No item with barcode <code>{{ barcode }}</code> — add it below.</p>
+  <form action="/add" method="post" style="margin-top:24px;">
+    <input type="hidden" name="barcode" value="{{ barcode }}" />
+    <table>
+      <tr>
+        <td>Barcode</td>
+        <td><code>{{ barcode }}</code></td>
+      </tr>
+      <tr>
+        <td><label for="name">Name</label></td>
+        <td><input id="name" name="name" type="text" required autofocus style="width:100%;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;" /></td>
+      </tr>
+      <tr>
+        <td><label for="desc">Description</label></td>
+        <td><input id="desc" name="description" type="text" style="width:100%;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;" /></td>
+      </tr>
+      <tr>
+        <td><label for="qty">Quantity</label></td>
+        <td><input id="qty" name="quantity" type="number" value="0" min="0" style="width:80px;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;" /></td>
+      </tr>
+      <tr>
+        <td><label for="loc">Location</label></td>
+        <td><input id="loc" name="location" type="text" style="width:100%;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;" /></td>
+      </tr>
+    </table>
+    <button type="submit" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;">Add to inventory</button>
+  </form>
   {% endif %}
 
   <a class="scan-again" href="/">Scan another →</a>
